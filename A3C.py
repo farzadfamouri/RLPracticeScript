@@ -332,9 +332,62 @@ with tqdm.trange(0, 3001) as progress_bar:
         if i % 1000 == 0:
             avg_reward = np.mean(evaluate(agent, make_env(), n_episodes=5))
             print(f"\nStep {i} - Average eval reward over 5 episodes: {avg_reward}")
-
-
 """
+# ============================================================
+# 8. Visualization (recording and showing agent performance)
+# ============================================================
+
+import imageio
+import base64
+import io
+from IPython.display import HTML, display
+
+
+def record_agent_video(agent, filename="agent_play.mp4", max_steps=1000):
+    
+    env = gym.make("ALE/KungFuMaster-v5", render_mode="rgb_array")
+    env = PreprocessAtari(env, height=84, width=84, n_frames=4, color=False)
+
+    state, info = env.reset()
+    frames = []
+    total_reward = 0.0
+    steps = 0
+
+    while True:
+        frame = env.render()
+        frames.append(frame)
+
+        action = agent.act(state)[0]
+        next_state, reward, terminated, truncated, info = env.step(action)
+        total_reward += reward
+        state = next_state
+        steps += 1
+
+        if terminated or truncated or steps >= max_steps:
+            break
+
+    env.close()
+    print(f"Total reward in recorded episode: {total_reward:.2f}")
+    imageio.mimsave(filename, frames, fps=30)
+    print(f"Video saved as {filename}")
+    return filename
+
+
+def show_recorded_video(filename="agent_play.mp4"):
+    
+    video = io.open(filename, 'r+b').read()
+    encoded = base64.b64encode(video)
+    display(HTML(data=f'''
+        <video alt="Agent gameplay" autoplay loop controls style="height:400px;">
+            <source src="data:video/mp4;base64,{encoded.decode('ascii')}" type="video/mp4" />
+        </video>'''))
+
+
+# --- Example usage after training ---
+video_path = record_agent_video(agent, filename="kungfu_agent.mp4", max_steps=1000)
+show_recorded_video(video_path)
+
+
 # Part 3 - Visualizing the results
 
 import glob
